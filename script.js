@@ -139,7 +139,7 @@
     }
 
     if (pos == "message") {
-      var horiz_centerer = (wind.w / 2) - 4 * arrange17spacer;
+      var horiz_centerer = (wind.w / 2) - 3 * arrange17spacer;
       var vert_centerer = (wind.h / 2) - 1.5 * arrange17spacer;
 
       for (var i = 17; i > 0; i--) {
