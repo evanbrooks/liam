@@ -1,5 +1,7 @@
 
   // Constants
+  // ----
+
   var fric_constant = 0.91;
   var spring_constant = 0.0008;
   var targ_spring_constant = 0.0008;
@@ -7,6 +9,20 @@
   var FPS = 60;
   var switch_time = 10;
   var inset = {x: 30, y: 50};
+  var doc = document;
+  var wind = {w: window.innerWidth, h: window.innerHeight};
+  var bumper = wind.w / 8
+  var mouse = {x:0, y:0};
+  var pmouse = {x:0, y:0};
+  var tick = 1000 / FPS;
+  var box1, gravitator;
+  var this_is_an_iphone = isiPhone();
+  var thing = [];
+
+
+
+  // Arrangement
+  // ---
 
   var arrange17 = [
     // Numeral 1
@@ -58,18 +74,6 @@
 
   ];
 
-  var thing = [];
-
-  // Utilities
-  var doc = document;
-  var reset = {x:0, y:0};
-  var wind = {w: window.innerWidth, h: window.innerHeight};
-  var bumper = wind.w / 8
-  var mouse = {x:0, y:0};
-  var pmouse = {x:0, y:0};
-  var tick = 1000 / FPS;
-  var box1, gravitator;
-  var this_is_an_iphone = isiPhone();
 
   $(function(){
     if (this_is_an_iphone) x = 1; //$("body").on("touchmove", finger);
@@ -119,6 +123,8 @@
 
   function set_position(pos) {
 
+    // Give each thing a random start velocity
+    // -------
     for (var i = 17; i > 0; i--) {
       thing[i-1].vel = {
         x: (Math.random() * 4 - 2),
@@ -126,6 +132,8 @@
       };
     }
 
+    // Set each things new target position, then begin coasting
+    // --------
     if (pos == "numeral") {
       var horiz_centerer = (wind.w / 2) - 2 * arrange17spacer;
       var vert_centerer = (wind.h / 2) - 3 * arrange17spacer;
@@ -135,14 +143,10 @@
         var targy = arrange17[i-1].y * arrange17spacer + vert_centerer;
         thing[i-1].targ = {x: targx, y: targy};
       }
-
-      for (var i = 17; i > 0; i--) {
-        thing[i-1].coast();
-      }
+      for (var i = 17; i > 0; i--) { thing[i-1].coast(); }
 
     }
-
-    if (pos == "message") {
+    else if (pos == "message") {
       var horiz_centerer = (wind.w / 2) - 3 * arrange17spacer;
       var vert_centerer = (wind.h / 2) - 1.5 * arrange17spacer;
 
@@ -151,10 +155,7 @@
         var targy = arrangeMsg[i-1].y * arrange17spacer + vert_centerer;
         thing[i-1].targ = {x: targx, y: targy};
       }
-
-      for (var i = 17; i > 0; i--) {
-        thing[i-1].coast();
-      }
+      for (var i = 17; i > 0; i--) { thing[i-1].coast(); }
     }
 
   }
@@ -194,19 +195,15 @@
       arrange17spacer = 80;
     }
 
+    // Throttle event so reset doesn't hapen until the end of resizing
+    // ------
     clearTimeout(after);
     after = setTimeout(reset_after_resize, 200);
   }
+
   function reset_after_resize() {
     set_position("message");
   }
-
-
-
-
-
-
-
 
 
 
@@ -271,13 +268,10 @@
     };
 
 
-    function reachedWall() {
-        return ( Math.abs(self.vel.x) < 0.1 && Math.abs(self.vel.y) < 0.1 &&
-             (Math.abs(self.pos.x - inset.x) < 0.5 || Math.abs(self.pos.x - (wind.w - inset.x)) < 0.5));
-    }
-
     // Returns true when animation should be completed and cleaned up
     function reachedTarget() {
+        self.ydist = Math.abs(self.targ.y - self.pos.y);
+        self.xdist = Math.abs(self.targ.x - self.pos.x);
         return ( Math.abs(self.vel.x) + Math.abs(self.vel.y) < 0.5 &&
                  Math.abs(self.xdist) + Math.abs(self.ydist) < 0.5 );
     }
@@ -286,24 +280,15 @@
     self.coast = function() {
       var counter = 0;
       self.anim_list = [];
-      self.ydist = Math.abs(self.targ.y - self.pos.y);
-      self.xdist = Math.abs(self.targ.x - self.pos.x);
 
-      while ( !reachedTarget() ) {
+      while ( !reachedTarget() || counter > 1000) {
         // spring towards center of gravity
 
-        self.ydist = Math.abs(self.targ.y - self.pos.y);
-        self.xdist = Math.abs(self.targ.x - self.pos.x);
         self.dist = Math.sqrt(self.xdist*self.xdist + self.ydist*self.ydist);
         
         springwall(self);
         gravitate(self);
 
-
-        // if (isNaN(self.vel.x)) self.vel.x = 0;
-        // if (isNaN(self.vel.y)) self.vel.y = 0;
-        // if (isNaN(self.pos.x)) self.pos.x = 0;
-        // if (isNaN(self.pos.y)) self.pos.y = 0;
 
         // Apply friction
         self.vel.x *= fric_constant;
@@ -318,10 +303,6 @@
         self.anim_list.push(copied);
 
         counter++;
-        if (counter > 1000) {
-          // console.log("Looped more than 1000 times: cancelling!");
-          break;
-        }
       }
 
       // Build and insert CSS animation
@@ -374,6 +355,8 @@
 
 
 
+
+
   function gravitate(i) {
     var springiness = i.dist * targ_spring_constant;
     var ypercent = (i.targ.y - i.pos.y)/(i.xdist + i.ydist);
@@ -382,6 +365,10 @@
     i.vel.x += xpercent * springiness;
     i.vel.y += ypercent * springiness;
   }
+
+
+
+
 
 
 
@@ -432,6 +419,7 @@
     if (window.performance) return performance.now();
     else return Date.now();
   }
+
 
 
   // Transformation Utility functions
@@ -488,6 +476,8 @@
     return (
         //Detect iPhone
         (navigator.platform.indexOf("iPhone") != -1) ||
+        //Detect iPad
+        (navigator.platform.indexOf("iPad") != -1) ||
         //Detect iPod
         (navigator.platform.indexOf("iPod") != -1)
     );
